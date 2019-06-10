@@ -7,6 +7,8 @@ app = create_app('dev')
 Migrate(app, db)
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+
+app.config['DEBUG'] = True
 if __name__ == '__main__':
     # app.run()
     manager.run()
