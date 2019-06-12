@@ -12,30 +12,34 @@ Page({
         hideShopPopup: true,
         buyNumber: 1,
         buyNumMin: 1,
-        buyNumMax:1,
+        buyNumMax: 1,
         canSubmit: false, //  选中时候是否允许加入购物车
         shopCarInfo: {},
         shopType: "addShopCar",//购物类型，加入购物车或立即购买，默认为加入购物车,
         id: 0,
         shopCarNum: 4,
-        commentCount:2
+        commentCount: 2
     },
-    onLoad: function () {
+    onLoad: function (options) {
         var that = this;
+        console.log(options);
+        that.setData({
+            id: options.id
+        });
 
         that.setData({
-            "info": {
-                "id": 1,
-                "name": "小鸡炖蘑菇",
-                "summary": '<p>多色可选的马甲</p><p><img src="http://www.timeface.cn/uploads/times/2015/07/071031_f5Viwp.jpg"/></p><p><br/>相当好吃了</p>',
-                "total_count": 2,
-                "comment_count": 2,
-                "stock": 2,
-                "price": "80.00",
-                "main_image": "/images/food.jpg",
-                "pics": [ '/images/food.jpg','/images/food.jpg' ]
-            },
-            buyNumMax:2,
+            // "info": {
+            //     "id": 1,
+            //     "name": "小鸡炖蘑菇",
+            //     "summary": '<p>多色可选的马甲</p><p><img src="http://www.timeface.cn/uploads/times/2015/07/071031_f5Viwp.jpg"/></p><p><br/>相当好吃了</p>',
+            //     "total_count": 2,
+            //     "comment_count": 2,
+            //     "stock": 2,
+            //     "price": "80.00",
+            //     "main_image": "/images/food.jpg",
+            //     "pics": [ '/images/food.jpg','/images/food.jpg' ]
+            // },
+            buyNumMax: 2,
             commentList: [
                 {
                     "score": "好评",
@@ -57,8 +61,8 @@ Page({
                 }
             ]
         });
+        this.getInfo();
 
-        WxParse.wxParse('article', 'html', that.data.info.summary, that, 5);
     },
     goShopCar: function () {
         wx.reLaunch({
@@ -78,6 +82,29 @@ Page({
         this.bindGuiGeTap();
     },
     addShopCar: function () {
+        //加入购物车  调用后端
+        var that = this;
+        wx.request({
+            url: app.buildUrl('v1/food/add'),
+            method: 'POST',
+            data: {
+                'fid': that.data.id,
+                'num': that.data.buyNumber,
+            },
+            header: app.getRequestHeader(),
+            success(res) {
+
+                if (res.data.code != 1) {
+                    app.alert({'content': res.data.msg});
+                    return;
+                }
+
+            }
+
+
+        })
+
+
 
     },
     buyNow: function () {
@@ -102,7 +129,7 @@ Page({
         })
     },
     numJianTap: function () {
-        if( this.data.buyNumber <= this.data.buyNumMin){
+        if (this.data.buyNumber <= this.data.buyNumMin) {
             return;
         }
         var currentNum = this.data.buyNumber;
@@ -112,7 +139,7 @@ Page({
         });
     },
     numJiaTap: function () {
-        if( this.data.buyNumber >= this.data.buyNumMax ){
+        if (this.data.buyNumber >= this.data.buyNumMax) {
             return;
         }
         var currentNum = this.data.buyNumber;
@@ -126,5 +153,31 @@ Page({
         this.setData({
             swiperCurrent: e.detail.current
         })
-    }
+    },
+    getInfo: function () {
+        var that = this;
+        wx.request({
+            url: app.buildUrl('v1/food/getInfo'),
+            method: 'GET',
+            data: {
+                'fid': that.data.id,
+            },
+            header: app.getRequestHeader(),
+            success(res) {
+
+                if (res.data.code != 1) {
+                    app.alert({'content': res.data.msg});
+                    return;
+                }
+                that.setData({
+                    info: res.data.data.info
+                });
+                WxParse.wxParse('article', 'html', that.data.info.summary, that, 5);
+
+            }
+
+
+        })
+
+    },
 });

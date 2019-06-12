@@ -7,7 +7,6 @@ import time
 import os
 import pymysql
 from flask_login import LoginManager
-
 from app.modelview import BaseModelview
 
 pymysql.install_as_MySQLdb()
@@ -25,7 +24,7 @@ login_manager.login_view = 'admin.login'
 http://127.0.0.1:5000/api/v1/user/login
 
 '''
-def create_app(config):
+def create_app(type):
 
     global app
 
@@ -35,33 +34,28 @@ def create_app(config):
 
     app.logger.addHandler(initlog())
 
-    login_manager.init_app(app)
 
     from flask_babelex import Babel
 
-    admin = Admin(app,name='订餐管理系统')
+    admin = Admin(app,name='订餐管理系统',template_mode='bootstrap3',base_template='admin/mybase.html')
 
     Babel(app)
-    app.config.from_object(configs[config])
-
-
+    app.config.from_object(configs[type])
 
     from app.models.admin import User
-    from app.admin.modelview import UModelview
-
-    admin.add_view(UModelview(User,db.session))
-
-
-
     from app.models.member import Member
+    from app.models.cart import MemberCart
+    from app.admin.modelview import MyModelView,UModelview,FModelview
 
-    admin.add_view(BaseModelview(Member,db.session))
-
+    # admin.add_view(MyModelView(Member,db.session,name="会员管理"))
+    admin.add_view(UModelview(User,db.session,name="管理员"))
 
 
     from app.models.food import Category,Food
-    admin.add_view(BaseModelview(Category,db.session))
-    admin.add_view(BaseModelview(Food,db.session))
+    admin.add_view(MyModelView(Category,db.session))
+    admin.add_view(FModelview(Food,db.session))
+
+    login_manager.init_app(app)
 
 
     from app.admin import admin_page
@@ -69,7 +63,10 @@ def create_app(config):
 
     from app.api.v1 import create_blueprint_v1
     app.register_blueprint(create_blueprint_v1(),url_prefix='/api/v1')
+
     return app
+
+
 
 def initlog():
     log_dir_name = "app/logs"
@@ -84,20 +81,3 @@ def initlog():
 
     handler.setFormatter(logging_format)
     return handler
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

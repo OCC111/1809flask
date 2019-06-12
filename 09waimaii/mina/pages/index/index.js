@@ -6,7 +6,7 @@ Page({
         remind: '加载中',
         angle: 0,
         userInfo: {},
-        islogin: true
+        isLogin: false
     },
     goToIndex: function () {
         wx.switchTab({
@@ -17,6 +17,7 @@ Page({
         wx.setNavigationBarTitle({
             title: app.globalData.shopName
         })
+        this.checkLogin()
     },
     onShow: function () {
 
@@ -42,71 +43,91 @@ Page({
             }
         });
     },
-    bindGetUserInfo(e) {
-        var that = this;
-        wx.login({
+    login: function (e) {
+        var that = this
+        wx.getUserInfo({
             success(res) {
-                if (res.code) {
-                    //发起网络请求
-                    console.log(res.code);
-                    wx.request({
-                        url: 'http://127.0.0.1:5000/api/v1/user/login', //仅为示例，并非真实的接口地址
-                        data: {
-                            code: res.code,
-                            nickname: e.detail.userInfo.nickName,
-                            avatarUrl: e.detail.userInfo.avatarUrl,
-                            gender: e.detail.userInfo.gender,
-
-                        },
-                        method: 'POST',
-                        header: app.getRequestHeader(),
-                        success(res) {
-                            var data = res.data;
-                            if (data.code == 1) {
-                                that.goToIndex()
-                            }
-
-                        }
-
-                    })
-                }else{
-                    console.log('登录失败' + res.errMsg)
+                if (!res.userInfo) {
+                    // app.alert({'content':'获取用户数据失败,请稍后再试'})
+                    return;
                 }
+                var data = res.userInfo
+                wx.login({
+                    success(res) {
+                        if (res.code) {
+                            // 发起网络请求
+                            data['code'] = res.code
+                            wx.request({
+                                url: app.buildUrl('v1/user/login'),
+                                data: {
+                                    code: res.code,
+                                    nickname: e.detail.userInfo.nickName,
+                                    avatarUrl: e.detail.userInfo.avatarUrl,
+                                    gender: e.detail.userInfo.gender,
+                                },
+                                method: 'POST',
+                                header: app.getRequestHeader(),
+                                success: function (res) {
+                                    var data = res.data;
+                                    if (data.code != 1) {
+                                        app.alert({'content': data.msg});
+
+
+                                    }
+                                    if (data.code == 1) {
+                                        app.setCache('token', res.data.data.token)
+
+                                        that.goToIndex()
+                                    }
+
+                                }
+                            })
+                        } else {
+                            console.log('登录失败！' + res.errMsg)
+                        }
+                    }
+                })
             }
         });
-        console.log(e.detail.userInfo)
     },
-
-        checkUserInfo(e) {
+    checkLogin: function () {
         var that = this;
-        wx.login({
+        wx.getUserInfo({
             success(res) {
-                if (res.code) {
-                    //发起网络请求
-                    console.log(res.code);
-                    wx.request({
-                        url: 'http://127.0.0.1:5000/api/v1/user/cklogin', //仅为示例，并非真实的接口地址
-                        data: {
-                            code: res.code,
+                if (!res.userInfo) {
+                    app.alert({'content': '获取用户数据失败,请稍后再试'})
 
-                        },
-                        method: 'POST',
-                        header: app.getRequestHeader(),
-                        success(res) {
-                            var data = res.data;
-                            if (data.code == 1) {
-                                that.setData({
-                                    islogin:true
-                                })
-                            }
-
-                        }
-
-                    })
                 }
+                var data = res.userInfo;
+                wx.login({
+                    success(res) {
+                        if (res.code) {
+                            // 发起网络请求
+                            data['code'] = res.code;
+                            wx.request({
+                                url: app.buildUrl('v1/user/checkLogin'),
+                                data: {'code': res.code},
+                                method: 'POST',
+                                header: app.getRequestHeader(),
+                                success: function (res) {
+                                    var data = res.data;
+                                    // console.log(data.code)
+                                    if (data.code == 1) {
+                                        app.setCache('token', res.data.data.token)
+
+                                        that.setData({
+                                            isLogin: true
+                                        })
+                                    }
+
+                                },
+                            })
+                        } else {
+                            console.log('登录失败！' + res.errMsg)
+                        }
+                    }
+                })
             }
         });
-        console.log(e.detail.userInfo)
     }
-
 });
